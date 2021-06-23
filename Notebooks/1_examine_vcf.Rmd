@@ -1,0 +1,85 @@
+---
+title: "DNA Variant Analysis with R Bioconductor"
+output: html_notebook
+---
+
+<br/>
+
+#### *Objective 1. Examine the header and metadata of a Variant Call Format (VCF) file*
+
+<br/>
+
+##### Get a raw VCF file to practice with  
+
+Set the directory where you want the data to be stored. 
+```{r setup}
+knitr::opts_knit$set(root.dir = "~/Desktop/DNAvariants/Data/") ## if you are using an R notebook
+
+#setwd("~/Desktop/DNAvariants/Data/") ## if you are not using an R notebook
+```
+
+<br/>
+Now get a VCF file provided in the `cgdv17` package for one human individual (chr17).  
+```{r}
+?cgdv17
+vcf_file <- system.file("vcf", "NA06985_17.vcf.gz", package = "cgdv17")
+vcf_file
+```
+So this is just telling you where the file is that came with this package. 
+
+
+<br/>
+Let's make a copy of the data and then decompress it so we can view it in a text editor. Note: if you do not have the `R.utils` package, you could also manually double click on the .gz file to decompress it.  
+```{r message=FALSE}
+file.copy(from=vcf_file, to=".") ## returns TRUE if this worked
+R.utils::gunzip("NA06985_17.vcf.gz", overwrite=TRUE)
+```
+
+If you open this in a text editor, you'll see a large header. Yikes!
+
+<br/>
+
+##### Read the VCF into R
+
+We can use the `scanVcfHeader()` function to get all of this information stored in an object `hdr` that we can retrieve values from, such as the file metadata, data sources and other genotype information.  
+
+```{r}
+?scanVcfHeader
+
+hdr <- scanVcfHeader(vcf_file)
+hdr
+```
+
+<br/>
+
+The __metadata__:
+
+```{r}
+meta(hdr)
+```
+
+<br/>
+
+The __information__:
+```{r}
+info(hdr)
+```
+<br/>
+
+The __genotypes__:
+```{r}
+geno(hdr)
+```
+
+<br/>
+
+The __slots__:
+```{r}
+slotNames(hdr)
+```
+
+Access slots with `@`:
+
+```{r}
+hdr@samples ## slot
+```

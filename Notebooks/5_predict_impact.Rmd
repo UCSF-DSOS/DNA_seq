@@ -1,0 +1,43 @@
+---
+title: "DNA Variant Analysis with R Bioconductor"
+output: html_notebook
+---
+
+<br/>
+
+#### *Objective 5. Get the predicted impact of variants*
+
+<br/>
+Now we are going to translate the variants to amino acids to find out if they are synonymous or non-synonymous.
+```{r}
+?predictCoding
+
+aa_vars <- predictCoding(query=vcf_sub, subject=txdb, seqSource=hsa)
+```
+<br/>
+
+Let's take a look at the small subset of variants that change amino acids:    
+
+```{r}
+aa_vars
+```
+
+<br/>
+
+Remember from the previous section that we can turn a GRanges object into a data frame with `mcols()`.
+```{r}
+aa_df <- mcols(aa_vars) 
+dim(aa_df)
+head(aa_df)
+```
+
+<br/>
+
+Now we can use `table()` to see how many are translated and (non-)synonymous. We should only see the three genes we originally selected now (TRP genes).  
+```{r}
+table("Impact:"=aa_df$CONSEQUENCE, "ENTREZID:"=aa_df$GENEID)
+```
+
+```{r}
+trp_ids
+```

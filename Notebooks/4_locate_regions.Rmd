@@ -1,0 +1,90 @@
+---
+title: "DNA Variant Analysis with R Bioconductor"
+output: html_notebook
+---
+
+<br/>
+
+#### *Objective 4. Locate the gene regions of all variants*
+
+<br/>
+Now we need BSgenome.Hsapiens.UCSC.hg19, which maps variants to sections of genes (exons, introns, etc.). Again we need to remove the "chr" from seqlevels, like we did in Objective 3.
+```{r message=FALSE}
+library(BSgenome.Hsapiens.UCSC.hg19)
+hsa <- BSgenome.Hsapiens.UCSC.hg19
+
+hsa <- renameSeqlevels(hsa, gsub("chr", "", seqlevels(hsa)))
+hsa
+```
+
+<br/>
+Now we can find the specific gene locations for all variants using the `locateVariants()` function.  
+```{r}
+?locateVariants
+
+all_vars <- locateVariants(query=vcf_sub, subject=txdb, region=AllVariants())
+```
+Note: the first message explains itself, and you may want to look into this. We won't worry about it since we have a lot of ranges left (see below). The 1:many message just means that there are >1 transcripts per gene in the VCF file. 
+
+```{r}
+all_vars
+```
+
+
+<br/>
+
+##### Create a data frame of all variants
+
+Let's convert the GRanges object we just created into a data frame with the `mcols()` function, which can make it easier to work with.
+```{r}
+all_df <- mcols(all_vars)
+dim(all_df)
+head(all_df)
+```
+
+<br/>
+
+Now you can use the `table()` function to find out how many variants we have by gene region for each ENTREZID.
+```{r}
+table("gene loc:"=all_df$LOCATION, "ENTREZID:"=all_df$GENEID)
+```
+
+<br/>
+
+**Wait!** Why do we have six ENTREZIDs? Shouldn't we just have three like we had with `trp_ids` (what we selected for above)?  
+```{r}
+trp_ids
+```
+
+<br/>
+
+**The answer:** Some variants may occur in overlapping genes, or in regulatory regions associated with the gene of interest. Based on the table above:  
+  
+All variants in ENTREZID 125144 are in promoters  
+All variants in ENTREZID 23729 are in 3'UTRs  
+All variants in ENTREZID 84690 are in introns, 5'UTRs, and promoters  
+
+<br/>
+
+Let's select these three new ENTREZIDs and get their SYMBOLs... remember how we got `trp_ids`? Here's a reminder of how we did it before:  
+
+```{r}
+trp_ids <- select(org.Hs.eg.db, 
+    keys=c("TRPV1", "TRPV2", "TRPV3"), 
+    keytype="SYMBOL", 
+    columns="ENTREZID")
+```
+
+<br/>
+
+**Challenge:** create an object called `other_ids` where you get the SYMBOLs that correspond to the ENTREZIDs 125144, 23729, and 84690.
+
+```{r}
+other_ids <- select(org.Hs.eg.db, 
+    keys=c("125144", "23729", "84690"), 
+    keytype="ENTREZID", 
+    columns=c("SYMBOL"))
+other_ids
+```
+
+

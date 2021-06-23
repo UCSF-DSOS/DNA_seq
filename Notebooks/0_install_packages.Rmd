@@ -1,0 +1,57 @@
+---
+title: "DNA Variant Analysis with R Bioconductor"
+output: html_notebook
+---
+
+<br/>
+
+#### In this workshop, our objectives are to:  
+
+  1. Examine the header and metadata of a Variant Call Format (VCF) file  
+  2. Select variants in genes of interest  
+  3. Get transcripts and genotypes for selected variants  
+  4. Locate regions of genes where variants fall (exons, introns, etc.)  
+  5. Get the predicted impact of variants  
+  6. Export variants to a Browser Extensible Data (BED) file and view in UCSC browser 
+  7. Perform pathway analysis on variants of interest 
+<br/>
+
+##### Load required packages
+
+Notes: 
+
+* You should already have these packages installed (per setup instructions via email).   
+* The code below only installs packages if not already installed (this is what the `setdiff` function checks for). Normally you would want to re-install/update them. Below are instructions for those who are re-installing/updating during the workshop.     
+* If asked "Do you want to install from sources the package which needs compilation?", select No [n] during class (other times select Yes [y]). Note that source versions are typically a little newer than binary versions.  
+* Lazy loading errors can be ignored, as can warnings about the version of R packages were built under.  
+* If asked to restart R, I recommend that you do so.  
+ 
+
+```{r message=FALSE}
+## install Bioconductor
+if (!requireNamespace("BiocManager"))
+    install.packages("BiocManager")
+## BiocManager::install(update = TRUE, ask = FALSE)  ## un-comment if you need to re-install or update 
+
+## list Bioconductor packages
+bpkgs <- c("VariantAnnotation","cgdv17","org.Hs.eg.db","TxDb.Hsapiens.UCSC.hg19.knownGene",
+          "BSgenome.Hsapiens.UCSC.hg19","rtracklayer","GO.db","ReactomePA")  
+
+## install Bioconductor packages
+BiocManager::install(setdiff(bpkgs, rownames(installed.packages()))) 
+
+## list CRAN packages
+rpkgs <- c("R.utils","knitr") ## knitr only needed if using R notebooks
+
+## install CRAN packages
+install.packages(setdiff(rpkgs, rownames(installed.packages())))
+
+## list and load all packages
+pkgs <- c(bpkgs, rpkgs)
+for(package in pkgs) {
+  do.call("library", list(package))
+}
+
+```
+
+To find package citations, you can use the citation() function with package name as the argument, e.g. citation("ReactomePA").

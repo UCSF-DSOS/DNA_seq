@@ -1,0 +1,32 @@
+---
+title: "DNA Variant Analysis with R Bioconductor"
+output: html_notebook
+---
+
+<br/>
+
+#### *Objective 2. Select variants in genes of interest*
+
+
+<br/>
+First of all, we need the built-in `org.Hs.eg.db` data from the `AnnotationDbi` package. `org.Hs.eg.db` contains human gene annotations as we can see by looking at the column names of this data.   
+```{r message=FALSE}
+library(org.Hs.eg.db)
+org.Hs.eg.db
+
+?org.Hs.eg.db
+columns(org.Hs.eg.db)
+```
+
+<br/>
+Let's use the `select()` function to select genes in the TRP family on chr17, since our VCF file contains chr17 variants.  
+
+Note: TRP = transient receptor potential. These genes are involved in temperature sensation and other processes (e.g. TRPV1 encodes a receptor for capsiacin).
+```{r}
+trp_ids <- select(org.Hs.eg.db, 
+    keys=c("TRPV1", "TRPV2", "TRPV3"), 
+    keytype="SYMBOL", 
+    columns="ENTREZID")
+trp_ids
+```
+

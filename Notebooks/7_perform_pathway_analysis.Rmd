@@ -1,0 +1,123 @@
+---
+title: "DNA Variant Analysis with R Bioconductor"
+output: html_notebook
+---
+
+<br/>
+
+#### *Objective 7: Perform pathway analysis on variants of interest*
+
+<br/>
+
+Set the directory where you want the data to be stored. 
+```{r setup}
+knitr::opts_knit$set(root.dir = "~/Desktop/DNAvariants/Data/") ## if you are using an R notebook
+
+#setwd("~/Desktop/DNAvariants/Data/") ## if you are not using an R notebook
+```
+
+<br/>
+
+
+First, we will use the `ReactomePA` package to do pathway analysis. This package uses a hypergeometric model [(Yu and He)](https://pubmed.ncbi.nlm.nih.gov/26661513/) to determine whether your list of genes are significantly associated with any Reactome packages. Make sure this package is loaded. You may also want to look through the vignettes for this package using the `browseVignettes` function.  
+
+For a recent overview of gene set analysis, see this paper by [(Das, McClain, and Rai)](https://pubmed.ncbi.nlm.nih.gov/33286201/).  
+
+
+
+```{r}
+library(ReactomePA)
+browseVignettes("ReactomePA")
+```
+
+The package can do pathway analysis for 7 different organisms.  
+
+<br/>
+
+So far we have just been working with a handful of variants from chr17. Since pathways involve genes from multiple chromosomes, we will use a small dataset containing the 100 most-frequently mutated genes in female breast cancer patients. This data is freely available through The Cancer Genome Atlas (TCGA), and was obtained using the [Genomic Data Commons Data Portal](https://portal.gdc.cancer.gov/).   
+
+*Note: this selection of 100 genes from the breast cancer cohort is an arbitrary number. It is not based on any biological or clinical criteria - this is for demonstration purposes only. Whether you are doing pathway analysis with differentially expressed genes or mutated genes, you should think carefully about your input list before doing the analysis!*
+
+<br/>
+
+Download the file `tcga_brca_mut_top100.tsv` from the course website and save it to your Data folder. Read this in as an object called brca. The only thing you really need are the gene symbols, but it contains all default fields in case you are curiuos to see what else you can look at from TCGA. 
+
+```{r}
+brca <- read.delim(file="tcga_brca_mut_top100.tsv", stringsAsFactors=FALSE)
+head(brca)
+```
+
+
+<br/>
+
+The `ReactomePA` package requires us to use Entrez IDs. So we need to translate the gene symbols. First let's create a vector of just the symbols.  
+
+```{r}
+brca_symbols <- brca$Symbol
+head(brca_symbols)
+```
+
+<br/>
+
+**CHALLENGE: Can you remember how to map gene SYMBOLs to ENTREZIDs?**
+
+*Hint: go back to Objective 2 and look for how we created trp_ids.*
+
+```{r}
+brca_ids <- select(org.Hs.eg.db, 
+    keys=brca_symbols, 
+    keytype="SYMBOL", 
+    columns="ENTREZID")
+head(brca_ids)
+```
+
+<br/>
+
+OK now we just need a character vector of Entrez IDs as input to the `enrichPathway()` function. We are going to use a q-value cutoff of 0.05 to determine significance.  
+
+```{r}
+?enrichPathway
+brca_pwy <- enrichPathway(gene=brca_ids$ENTREZID, qvalueCutoff=0.05, readable=T) 
+head(as.data.frame(brca_pwy))
+```
+
+The IDs correspond to Reactome pathway IDs. You can find out a lot more about any one by looking the ID up on [reactome.org](https://reactome.org/) (e.g. see the entry for [R-HSA-977068](https://reactome.org/content/detail/R-HSA-977068)).  
+
+How many pathways did we get with a q-value < 0.05?   
+```{r}
+dim(brca_pwy)
+```
+
+<br/>
+
+Let's do some visualizations! First we will do a bar plot showing the top 10 pathways. We will save these to files in order to be able to view them better (first un-comment the `png` and `dev.off()` lines.  
+
+Note: see slides in Resources section of the workshop CLE page (https://tiny.ucsf.edu/dsidnaseq) for images.  
+
+```{r}
+png("./Results/barplot_brca.png", width=960)
+barplot(brca_pwy, showCategory = 10)
+dev.off()
+```
+
+<br/>
+
+And now for a dot plot.  
+
+```{r message=FALSE}
+png("../Results/dotplot_brca.png", width=960)
+dotplot(brca_pwy, showCategory = 10)
+dev.off()
+```
+
+<br/>
+
+And now for an enrichment map!  
+
+```{r}
+png("../Results/emap_brca.png", width=960)
+emapplot(brca_pwy, showCategory = 10)
+dev.off()
+```
+
+

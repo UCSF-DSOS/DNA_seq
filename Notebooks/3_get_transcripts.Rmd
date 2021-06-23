@@ -1,0 +1,145 @@
+---
+title: "DNA Variant Analysis with R Bioconductor"
+output: html_notebook
+---
+
+<br/>
+
+#### *Objective 3. Get transcripts and variant genotypes for selected genes*
+
+<br/>
+Now we need the `TxDb.Hsapiens.UCSC.hg19.knownGene` database, which contains transcript, exon, intron, and other features of known UCSC genes (those derived from RefSeq, GenBank, etc.).
+```{r message=FALSE}
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+TxDb.Hsapiens.UCSC.hg19.knownGene
+```
+
+
+<br/>
+
+##### Select chr17 transcript regions
+
+Let's see a list of the chromosome names with `seqlevels()`.  
+
+Note: if you re-run this after running any of the code below, you'll need to unload/reload the `TxDb.Hsapiens.UCSC.hg19.knownGene` database, so let's do that here just in case.
+```{r}
+detach("package:TxDb.Hsapiens.UCSC.hg19.knownGene", unload=TRUE)
+library(TxDb.Hsapiens.UCSC.hg19.knownGene)
+seqlevels(TxDb.Hsapiens.UCSC.hg19.knownGene)
+```
+<br/>
+
+What are chrUn and random? From the UCSC Genome Browser FAQ page:   
+
+[chrUn](https://genome.ucsc.edu/FAQ/FAQdownloads.html#download11)  
+[random](https://genome.ucsc.edu/FAQ/FAQdownloads.html#download10)  
+
+
+A general overview of assembly-related concepts and terms can be found on the [NCBI Genome Reference Consortium page](https://www.ncbi.nlm.nih.gov/grc/help/).
+
+<br/>
+
+
+##### Get genomic locations (base pair positions) for regions of interest
+
+
+For the next step where we will be retrieving genomic locations for the genes/transcripts of interest, we need remove the "chr" from chromosome names. `renameSeqlevels()` is one of the convenince functions from the GenomeInfoDb package. Let's assign the database with renamed chromosomes as `txdb`.
+```{r}
+txdb <- renameSeqlevels(TxDb.Hsapiens.UCSC.hg19.knownGene, gsub("chr", "", seqlevels(TxDb.Hsapiens.UCSC.hg19.knownGene)))
+```
+
+<br/>
+Now we want to select only chromosome 17 since we know the TRP genes are on this one.
+```{r}
+tx17 <- keepSeqlevels(txdb, "17")
+seqlevels(tx17)
+```
+
+<br/>
+Now we can get genomic location information for chromosome 17 transcripts in `tx17`. The `transcriptsBy()` function from the `GenomicFeatures` package can give us this informatation.
+```{r}
+tx17_loc <- transcriptsBy(tx17, by="gene")
+tx17_loc
+```
+
+
+<br/>
+
+##### Map variants to transcripts
+
+Recall from Objective 2, we created `trp_ids`, which contains ENTREZIDs for the TRP genes. 
+We can use these to subset the object above `tx17_loc` since these regions are labeled with ENTREZIDs. Then we can combine this information with the variants.    
+
+```{r}
+trp_ids
+```
+
+<br/>
+
+We also only need the ranges in non-list format for the next step.  
+```{r}
+trp_granges <- unlist(range(tx17_loc[trp_ids$ENTREZID]))
+trp_granges
+```
+
+<br/>
+You can substitute symobls for ENTREZIDs if you'd like by replacing the names.  
+```{r}
+names(trp_granges) <- trp_ids$SYMBOL
+trp_granges
+```
+
+<br/>
+
+##### Get the variant genotypes
+
+
+Now let's get the genotypes for TRP variants after indicating which parameters we want to read with the `ScanVcfParam()` function. To see a list of the options for your VCF file, we can use the `scanVcfHeader()` function with the VCF filename as the argument (including path, can be to a .gz file).
+```{r}
+?ScanVcfParam
+vcf_file
+scanVcfHeader(vcf_file) ## same as hdr object that we created before
+```
+
+
+<br/>
+
+How do we get genotypes? We can extract just the fields we want from our VCF file by passing `trp_params` to the `readVcf()` function. To see all the options again you can use verbose=TRUE.  
+```{r}
+?readVcf
+
+readVcf(vcf_file, genome="hg19", verbose=TRUE)
+```
+
+<br/>
+
+Let's say we only want total depth (DP), genotypes (GT) and ploidy level (cPd).  
+
+```{r}
+trp_params <- ScanVcfParam(info="DP", geno=c("GT", "cPd"), which=trp_granges)
+trp_params
+```
+
+
+<br/>
+
+Let's create a new object that is a subset of the VCF fields. 
+```{r}
+vcf_sub <- readVcf(vcf_file, genome="hg19", param=trp_params)
+vcf_sub
+```
+
+<br/>
+
+Let's take a look at what we have now.  
+
+```{r}
+vcf_sub
+```
+
+Notice that it's telling you that you can access a GRanges object with the `rowRanges()` function.    
+```{r}
+rowRanges(vcf_sub)
+```
+
+
