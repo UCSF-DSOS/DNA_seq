@@ -9,7 +9,7 @@ output: html_notebook
 
 <br/>
 Now we are going to translate the variants to amino acids to find out if they are synonymous or non-synonymous.
-```{r}
+```{r warning=FALSE}
 ?predictCoding
 
 aa_vars <- predictCoding(query=vcf_sub, subject=txdb, seqSource=hsa)

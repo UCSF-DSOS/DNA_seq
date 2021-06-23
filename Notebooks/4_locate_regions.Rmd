@@ -8,9 +8,9 @@ output: html_notebook
 #### *Objective 4. Locate the gene regions of all variants*
 
 <br/>
-Now we need BSgenome.Hsapiens.UCSC.hg19, which maps variants to sections of genes (exons, introns, etc.). Again we need to remove the "chr" from seqlevels, like we did in Objective 3.
-```{r message=FALSE}
-library(BSgenome.Hsapiens.UCSC.hg19)
+
+Now we need BSgenome.Hsapiens.UCSC.hg19, which maps variants to sections of genes (exons, introns, etc.). Again we need to remove the "chr" from seqlevels, like we did in Objective 3.  
+```{r message=FALSE, warning=FALSE}
 hsa <- BSgenome.Hsapiens.UCSC.hg19
 
 hsa <- renameSeqlevels(hsa, gsub("chr", "", seqlevels(hsa)))

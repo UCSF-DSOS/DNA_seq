@@ -11,15 +11,9 @@ output: html_notebook
 
 ##### Get a raw VCF file to practice with  
 
-Set the directory where you want the data to be stored. 
-```{r setup}
-knitr::opts_knit$set(root.dir = "~/Desktop/DNAvariants/Data/") ## if you are using an R notebook
+If you want to read a file from a package, you can use the `system.file()` function.  
 
-#setwd("~/Desktop/DNAvariants/Data/") ## if you are not using an R notebook
-```
-
-<br/>
-Now get a VCF file provided in the `cgdv17` package for one human individual (chr17).  
+Get the VCF file provided in the `cgdv17` package for one human individual (chr17).  
 ```{r}
 ?cgdv17
 vcf_file <- system.file("vcf", "NA06985_17.vcf.gz", package = "cgdv17")
@@ -28,12 +22,21 @@ vcf_file
 So this is just telling you where the file is that came with this package. 
 
 
-<br/>
-Let's make a copy of the data and then decompress it so we can view it in a text editor. Note: if you do not have the `R.utils` package, you could also manually double click on the .gz file to decompress it.  
-```{r message=FALSE}
-file.copy(from=vcf_file, to=".") ## returns TRUE if this worked
-R.utils::gunzip("NA06985_17.vcf.gz", overwrite=TRUE)
+If you want to read a file that is already stored in your project directory, you can use the `here()` function.  
+
+```{r}
+proj_dir <- here() ## should be the project directory even if getwd() shows something else
+
+vcf_file <- paste0(proj_dir, "/Data/NA06985_17.vcf.gz") 
+vcf_file
 ```
+
+
+Optional: Make a copy of the data and then decompress it so we can view it in a text editor. If you do _not_ have the `R.utils` package, you could also manually double click on the .gz file to decompress it.  
+```{r message=FALSE}
+R.utils::gunzip(vcf_file, skip=TRUE, remove=FALSE)
+```
+
 
 If you open this in a text editor, you'll see a large header. Yikes!
 

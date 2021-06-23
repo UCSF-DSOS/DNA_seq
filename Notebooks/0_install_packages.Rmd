@@ -20,8 +20,8 @@ output: html_notebook
 
 Notes: 
 
-* You should already have these packages installed (per setup instructions via email).   
 * The code below only installs packages if not already installed (this is what the `setdiff` function checks for). Normally you would want to re-install/update them. Below are instructions for those who are re-installing/updating during the workshop.     
+* If asked "Update all/some/none?", select No [n] during class (other times select Yes [y]). Older versions of the packages that we will be using will probably work OK.  
 * If asked "Do you want to install from sources the package which needs compilation?", select No [n] during class (other times select Yes [y]). Note that source versions are typically a little newer than binary versions.  
 * Lazy loading errors can be ignored, as can warnings about the version of R packages were built under.  
 * If asked to restart R, I recommend that you do so.  
@@ -41,10 +41,10 @@ bpkgs <- c("VariantAnnotation","cgdv17","org.Hs.eg.db","TxDb.Hsapiens.UCSC.hg19.
 BiocManager::install(setdiff(bpkgs, rownames(installed.packages()))) 
 
 ## list CRAN packages
-rpkgs <- c("R.utils","knitr") ## knitr only needed if using R notebooks
+rpkgs <- c("here","R.utils","knitr","enrichplot") ## knitr only needed if using R notebooks
 
 ## install CRAN packages
-install.packages(setdiff(rpkgs, rownames(installed.packages())))
+install.packages(setdiff(rpkgs, rownames(installed.packages())), quiet=TRUE)
 
 ## list and load all packages
 pkgs <- c(bpkgs, rpkgs)

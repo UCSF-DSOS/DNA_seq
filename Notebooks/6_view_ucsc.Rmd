@@ -9,15 +9,6 @@ output: html_notebook
 
 <br/>
 
-Set the directory where you want the data to be stored. 
-```{r setup}
-knitr::opts_knit$set(root.dir = "~/Desktop/DNAvariants/Data/") ## if you are using an R notebook
-
-#setwd("~/Desktop/DNAvariants/Data/") ## if you are not using an R notebook
-```
-
-<br/>
-
 Let's subset the variants on non-TRP genes so we can visualize where these are in the UCSC browser. Recall from the challenge in Objective 4, we created `other_ids`.  
 ```{r}
 table("gene loc:"=all_df$LOCATION, "ENTREZID:"=all_df$GENEID)
@@ -28,7 +19,7 @@ other_ids
 <br/>
 
 We have 2 variants in SHPK with ENTREZID 23729 so let's select those from `all_vars`.
-```{r}
+```{r warning=FALSE}
 shpk_vars <- all_vars[all_vars$GENEID=="23729"]
 shpk_vars
 ```
@@ -71,7 +62,7 @@ shpk_track
 <br/>
 Now we can save the BED file.
 ```{r}
-export(shpk_track, "shpk.bed")
+export(shpk_track, paste0(proj_dir, "/Data/shpk.bed"))
 ```
 
 <br/>

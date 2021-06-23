@@ -7,14 +7,6 @@ output: html_notebook
 
 #### *Objective 7: Perform pathway analysis on variants of interest*
 
-<br/>
-
-Set the directory where you want the data to be stored. 
-```{r setup}
-knitr::opts_knit$set(root.dir = "~/Desktop/DNAvariants/Data/") ## if you are using an R notebook
-
-#setwd("~/Desktop/DNAvariants/Data/") ## if you are not using an R notebook
-```
 
 <br/>
 
@@ -43,7 +35,7 @@ So far we have just been working with a handful of variants from chr17. Since pa
 Download the file `tcga_brca_mut_top100.tsv` from the course website and save it to your Data folder. Read this in as an object called brca. The only thing you really need are the gene symbols, but it contains all default fields in case you are curiuos to see what else you can look at from TCGA. 
 
 ```{r}
-brca <- read.delim(file="tcga_brca_mut_top100.tsv", stringsAsFactors=FALSE)
+brca <- read.delim(file=paste0(proj_dir, "/Data/tcga_brca_mut_top100.tsv"), stringsAsFactors=FALSE)
 head(brca)
 ```
 
@@ -95,7 +87,7 @@ Let's do some visualizations! First we will do a bar plot showing the top 10 pat
 Note: see slides in Resources section of the workshop CLE page (https://tiny.ucsf.edu/dsidnaseq) for images.  
 
 ```{r}
-png("./Results/barplot_brca.png", width=960)
+png(paste0(proj_dir, "/Results/barplot_brca.png"), width=960)
 barplot(brca_pwy, showCategory = 10)
 dev.off()
 ```
@@ -105,7 +97,7 @@ dev.off()
 And now for a dot plot.  
 
 ```{r message=FALSE}
-png("../Results/dotplot_brca.png", width=960)
+png(paste0(proj_dir, "/Results/dotplot_brca.png"), width=960)
 dotplot(brca_pwy, showCategory = 10)
 dev.off()
 ```
@@ -115,8 +107,9 @@ dev.off()
 And now for an enrichment map!  
 
 ```{r}
-png("../Results/emap_brca.png", width=960)
-emapplot(brca_pwy, showCategory = 10)
+png(paste0(proj_dir, "/Results/emap_brca.png"), width=960)
+brca_pwy_ptobj <- pairwise_termsim(brca_pwy)
+emapplot(brca_pwy_ptobj, showCategory = 10)
 dev.off()
 ```
 
