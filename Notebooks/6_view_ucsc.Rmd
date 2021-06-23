@@ -68,7 +68,7 @@ export(shpk_track, paste0(proj_dir, "/Data/shpk.bed"))
 <br/>
 Finally, let's view the second one (deletion) in the UCSC browser, zooming out 2x so we can see a little of the surrounding area, and selecting just a few tracks. 
 ```{r}
-shpk_track <- import("shpk.bed")
+shpk_track <- import(paste0(proj_dir,"/Data/shpk.bed"))
 
 session <- browserSession("UCSC")
 track(session, "SHPK_variants") <- shpk_track
