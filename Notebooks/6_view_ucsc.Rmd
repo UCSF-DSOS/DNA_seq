@@ -20,7 +20,7 @@ other_ids
 
 We have 2 variants in SHPK with ENTREZID 23729 so let's select those from `all_vars`.
 ```{r warning=FALSE}
-shpk_vars <- all_vars[all_vars$GENEID=="23729"]
+shpk_vars <- all_vars[!is.na(all_vars$GENEID=="23729")]
 shpk_vars
 ```
 
@@ -35,10 +35,11 @@ shpk_vcf
 rowRanges(shpk_vcf)
 ```
 
-<br/>
+<br/> 
+
 So we see that the first of these is a single nucleotide polymorphism (SNP) and the second one is a deletion of GAGA.  
 
-The ENSEMBL website has a nice summary of small variant types found in VCFs   (http://uswest.ensembl.org/info/genome/variation/index.htm):  
+The ENSEMBL website has a nice summary of small variant types found in VCFs   (http://uswest.ensembl.org/info/genome/variation/index.html):  
 
 
 <br/>
@@ -53,8 +54,7 @@ shpk_vars@strand
 shpk_track <- GRangesForUCSCGenome(genome = "hg19", 
     chrom = "chr17", 
     ranges = shpk_vars@ranges,
-    strand = shpk_vars@strand,
-    name = c("snp","deletion"))
+    strand = shpk_vars@strand)
 
 shpk_track
 ```
@@ -66,19 +66,22 @@ export(shpk_track, paste0(proj_dir, "/Data/shpk.bed"))
 ```
 
 <br/>
-Finally, let's view the second one (deletion) in the UCSC browser, zooming out 2x so we can see a little of the surrounding area, and selecting just a few tracks. 
+Finally, let's view the second one (deletion) in the UCSC browser, zooming out 3x at least so we can see a little of the surrounding area, and selecting just a few tracks. 
 ```{r}
 shpk_track <- import(paste0(proj_dir,"/Data/shpk.bed"))
+shpk_track
 
 session <- browserSession("UCSC")
+genome(session) <- "hg19"
 track(session, "SHPK_variants") <- shpk_track
 
-shpk_del <- shpk_track[2]
+shpk_snp1 <- shpk_track[1]
+shpk_snp1
 
 trackNames(session)
 
 view <- browserView(session, 
-        shpk_del* -2, 
+        shpk_snp1* -3, 
         track=c("ct_SHPKvariants_7561", "ruler", "knownGene", "snp150"))
 ```
 

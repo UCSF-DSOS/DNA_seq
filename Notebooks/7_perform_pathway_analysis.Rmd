@@ -22,7 +22,7 @@ library(ReactomePA)
 browseVignettes("ReactomePA")
 ```
 
-The package can do pathway analysis for 7 different organisms.  
+The package can do pathway analysis for 7 different organisms.  Click the link to the full [book](https://yulab-smu.top/biomedical-knowledge-mining-book/) for a more comprehensive overview!
 
 <br/>
 
