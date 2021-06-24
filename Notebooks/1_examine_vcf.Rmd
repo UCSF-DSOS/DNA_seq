@@ -15,9 +15,9 @@ If you want to read a file from a package, you can use the `system.file()` funct
 
 Get the VCF file provided in the `cgdv17` package for one human individual (chr17).  
 ```{r}
-?cgdv17
-vcf_file <- system.file("vcf", "NA06985_17.vcf.gz", package = "cgdv17")
-vcf_file
+# ?cgdv17
+# vcf_file <- system.file("vcf", "NA06985_17.vcf.gz", package = "cgdv17")
+# vcf_file
 ```
 So this is just telling you where the file is that came with this package. 
 
@@ -41,6 +41,9 @@ R.utils::gunzip(vcf_file, skip=TRUE, remove=FALSE)
 If you open this in a text editor, you'll see a large header. Yikes!
 
 <br/>
+
+Note: you can read in different file formats or read multiple VCF files using the `vcfR` package - see the [vignette](https://cran.r-project.org/web/packages/vcfR/vignettes/intro_to_vcfR.html)!
+
 
 ##### Read the VCF into R
 
