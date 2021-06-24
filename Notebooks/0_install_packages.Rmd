@@ -31,17 +31,17 @@ Notes:
 ## install Bioconductor
 if (!requireNamespace("BiocManager"))
     install.packages("BiocManager")
-BiocManager::install(update = TRUE, ask = FALSE)  ## un-comment if you need to re-install or update 
+# BiocManager::install(update = TRUE, ask = FALSE)  ## un-comment if you need to re-install or update 
 
 ## list Bioconductor packages
 bpkgs <- c("VariantAnnotation","org.Hs.eg.db","TxDb.Hsapiens.UCSC.hg19.knownGene",
           "BSgenome.Hsapiens.UCSC.hg19","rtracklayer","GO.db","ReactomePA")  
 
 ## install Bioconductor packages
-BiocManager::install(setdiff(bpkgs, rownames(installed.packages()))) 
+# BiocManager::install(setdiff(bpkgs, rownames(installed.packages()))) 
 
 ## list CRAN packages
-rpkgs <- c("here","R.utils","rmarkdown","knitr","enrichplot") ## knitr only needed if using R notebooks
+rpkgs <- c("here","R.utils","rmarkdown","knitr","enrichplot","ggnewscale") ## knitr only needed if using R notebooks
 
 ## install CRAN packages
 install.packages(setdiff(rpkgs, rownames(installed.packages())), quiet=TRUE)
