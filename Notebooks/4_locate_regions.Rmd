@@ -7,15 +7,6 @@ output: html_notebook
 
 #### *Objective 4. Locate the gene regions of all variants*
 
-<br/>
-
-Now we need BSgenome.Hsapiens.UCSC.hg19, which maps variants to sections of genes (exons, introns, etc.). Again we need to remove the "chr" from seqlevels, like we did in Objective 3.  
-```{r message=FALSE, warning=FALSE}
-hsa <- BSgenome.Hsapiens.UCSC.hg19
-
-hsa <- renameSeqlevels(hsa, gsub("chr", "", seqlevels(hsa)))
-hsa
-```
 
 <br/>
 Now we can find the specific gene locations for all variants using the `locateVariants()` function.  
@@ -51,18 +42,14 @@ table("gene loc:"=all_df$LOCATION, "ENTREZID:"=all_df$GENEID)
 
 <br/>
 
-**Wait!** Why do we have six ENTREZIDs? Shouldn't we just have three like we had with `trp_ids` (what we selected for above)?  
+**Wait!** Why do we have so many ENTREZIDs? Shouldn't we just have three like we had with `trp_ids` (what we selected for above)?  
 ```{r}
 trp_ids
 ```
 
 <br/>
 
-**The answer:** Some variants may occur in overlapping genes, or in regulatory regions associated with the gene of interest. Based on the table above:  
-  
-All variants in ENTREZID 125144 are in promoters  
-All variants in ENTREZID 23729 are in 3'UTRs  
-All variants in ENTREZID 84690 are in introns, 5'UTRs, and promoters  
+**The answer:** Some variants may occur in overlapping genes, or in regulatory regions associated with the gene of interest. 
 
 <br/>
 
