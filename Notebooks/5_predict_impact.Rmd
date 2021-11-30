@@ -8,6 +8,26 @@ output: html_notebook
 #### *Objective 5. Get the predicted impact of variants*
 
 <br/>
+Now we need a **BSgenome** database to get even more information about the sequence changes in our sample compared to the reference genome. For example we can use this to determine if our sample variants will change amino acids. This in turn will allow us to predict whether these changes will impact the protein function. First let's look at this.   
+
+```{r}
+?BSgenome.Hsapiens.UCSC.hg19
+
+BSgenome.Hsapiens.UCSC.hg19
+```
+
+<br/>
+Just like we did before with the TxDb object, we need to remove the "chr" from the chromosome names since our sample (VCF file) does not have this.  
+
+```{r}
+hsa <- BSgenome.Hsapiens.UCSC.hg19
+hsa <- renameSeqlevels(hsa, gsub("chr", "", seqlevels(hsa)))
+hsa
+```
+
+
+
+<br/>
 Now we are going to translate the variants to amino acids to find out if they are synonymous or non-synonymous.
 ```{r warning=FALSE}
 ?predictCoding
