@@ -1,0 +1,130 @@
+---
+title: "DNA Variant Analysis with R Bioconductor"
+output: html_notebook
+---
+
+------------------------------------------------------------------------
+
+### *Objective 3. Annotate variants with transcript information*
+
+------------------------------------------------------------------------
+
+#### A. Identify transcripts of interest in reference database
+
+Now, we need the `TxDb.Hsapiens.UCSC.hg19.knownGene`database from the `AnnotationDbi` package. `TxDb.Hsapiens.UCSC.hg19.knownGene` contains contains transcript, exon, intron, and other features of human genes. Before we can actually select the genes out of the VCF files, we also need to identify the transcripts and locations for the genes of interest.
+
+```{r message=FALSE}
+TxDb.Hsapiens.UCSC.hg19.knownGene
+```
+
+Let's get familiar with another accessor function called `seqlevels()` first, and observe how we need to align these before going to the next step. The `seqlevels()` function shows how chromosomes are labeled in each database.
+
+```{r}
+seqlevels(vcf_full)
+```
+
+```{r}
+seqlevels(TxDb.Hsapiens.UCSC.hg19.knownGene)
+```
+
+------------------------------------------------------------------------
+
+What are chrUn and random? From the UCSC Genome Browser FAQ page:
+
+[chrUn](https://genome.ucsc.edu/FAQ/FAQdownloads.html#download11)\
+[random](https://genome.ucsc.edu/FAQ/FAQdownloads.html#download10)
+
+A general overview of assembly-related concepts and terms can be found on the [NCBI Genome Reference Consortium page](https://www.ncbi.nlm.nih.gov/grc/help/).
+
+------------------------------------------------------------------------
+
+#### B. Align naming of chromosomes in VCF files and gene transcripts
+
+We need remove the "chr" from chromosome names in `TxDb.Hsapiens.UCSC.hg19.knownGene` using the `renameSeqlevels()` function so that the naming of chromosomes is the same as what we have in our VCF file. Let's assign the database with renamed chromosomes as `txdb` just to make it easier to type than the whole database name.
+
+```{r}
+txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
+```
+
+Now we can remove the "chr" in the chromosome names in our `txdb` object. Annotations are kind of like merging fields so they need to have the same formats!
+
+```{r}
+txdb <- renameSeqlevels(TxDb.Hsapiens.UCSC.hg19.knownGene, 
+                        gsub("chr", "", seqlevels(TxDb.Hsapiens.UCSC.hg19.knownGene)))
+```
+
+Now we can check that it worked - our `seqlevels()` output should not have the "chr".
+
+```{r}
+seqlevels(txdb)
+```
+
+------------------------------------------------------------------------
+
+##### Subset the gene transcripts by chromosome
+
+Now we can select the transcripts on chromosome 17 (denoted by just "17" not "chr17") using the `keepSeqlevels()` function.
+
+```{r}
+?keepSeqlevels
+tx17 <- keepSeqlevels(txdb, "17")
+seqlevels(tx17)
+```
+
+OK we can now find the transcripts for chromosome 17 and we can request to get them by gene using the `transcriptsBy()` function. Look at the help file for this function `transcriptsBy()` to see other options.
+
+```{r}
+?transcriptsBy
+tx17_loc <- transcriptsBy(tx17, by="gene")
+tx17_loc
+```
+
+------------------------------------------------------------------------
+
+##### Apply gene symbols to transcripts
+
+Notice that `tx17_loc` returns a **GRangesList** that has multiple **GRanges** objects within it. Let's get the GRanges for each TRP gene. Recall from Objective 2, we created `trp_ids`, which contains ENTREZIDs for the TRP genes? We can apply those to the GRanges objects. Before just assigning SYMBOLs below make sure they are in the correct order (you can be extra cautious by using a matching function, but since it is easy to manually check here we will do that).
+
+```{r}
+trp_granges <- unlist(range(tx17_loc[trp_ids$ENTREZID]))
+trp_granges
+trp_ids
+names(trp_granges) <- trp_ids$SYMBOL
+trp_granges
+```
+
+We are getting there!
+
+------------------------------------------------------------------------
+
+#### C. Select variants fields and transcripts
+
+##### Select fields and transcripts to read from the VCF file
+
+Let's say we only want total depth (DP), genotypes (GT) and ploidy level (cPd). You can choose other fields using the `info=` and `geno=` arguments to the `ScanVcfParam()` function. the `which=` argument tells it which rows (variantes to select based on the transcripts specified.
+
+```{r}
+trp_params <- ScanVcfParam(info="DP", geno=c("GT", "cPd"), which=trp_granges)
+trp_params
+```
+
+------------------------------------------------------------------------
+
+##### Re-read VCF with selected fields and transcripts
+
+Finally, we are ready to specify our genes and transcripts that we want to read from our VCF file. This means we will be re-reading it in! We will create a new object that is a subset of the VCF fields called `vcf_sub`.
+
+In the Details section of the help file for `readVcf()`, it says: "To import a subset of ranges the VCF must have an index file. An index file can be created with the `bzip()` and `indexVcf()` functions."
+
+```{r}
+vcf_sub <- readVcf(vcf_file, genome="hg19", param=trp_params)
+vcf_sub
+```
+
+Notice that we have now 405 rows (as opposed to over 100k rows in `vcf_full`. It was also much faster to read the subset than the full VCF file. This is just like the object that we were working with in Objective 1, so we can use the same accessor functions to inspect `vcf_sub`. For example, you can access individual variant-level information with the `rowRanges()` function.
+
+```{r}
+rowRanges(vcf_sub)
+```
+
+Notice that we now also have the TRP genes! Next we will find out where the variants fall within these genes (i.e. what transcripts and whether they are in exons, introns, etc.).

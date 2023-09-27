@@ -1,0 +1,228 @@
+---
+title: "DNA Variant Analysis with R Bioconductor"
+output: html_notebook
+---
+
+------------------------------------------------------------------------
+
+### *Objective 1. Examine the header and data of a Variant Call Format (VCF) file*
+
+------------------------------------------------------------------------
+
+#### A. Access a raw VCF file
+
+We will read a file that is already stored in your project directory. You can retrieve this directory on your system using the `here()` function.
+
+Alternatively, you can use `setwd()` to specify the project directory and assign that to the object `proj_dir`. Assigning the directory path to an object makes the code a little cleaner.
+
+```{r}
+proj_dir <- here()  
+
+vcf_file <- paste0(proj_dir, "/Data/NA06985_17.vcf.gz") 
+vcf_file ## path will be specific to your system but should point to DNA_seq_main if you downloaded materials from GitHub
+```
+
+*Optional:* Make a copy of the data and then decompress it so we can view it in a text editor. Without the `R.utils` package, you could also manually double click on the .gz file to decompress it.
+
+```{r message=FALSE}
+gunzip(filename=vcf_file, skip=TRUE, remove=FALSE)
+```
+
+If you open this in a text editor, you'll see a large header. The format can be hard to work with manually. R makes it much easier!
+
+------------------------------------------------------------------------
+
+#### B. Inspect the VCF header
+
+We can use the `scanVcfHeader()` function to quickly get the header information stored in an object `hdr`. The header contains the metadata, data sources and other information.
+
+```{r}
+?scanVcfHeader
+
+hdr <- scanVcfHeader(vcf_file)
+hdr
+```
+
+***Accessor*** functions can be used to access different portions of large/complex objects that are created by many Bioconductor packages. Let's start practicing the use of accessor functions on this `hdr` object that contains the VCF header.
+
+------------------------------------------------------------------------
+
+##### **The metadata fields**
+
+The **metadata** section of the header gives general information about the VCF file. You can use the `meta()` accessor function to look at these annotation types:
+
+```{r}
+meta(hdr)
+```
+
+Now you can get more specific information from about each of the fields listed by name in the metadata using the dollar sign `$`, for example let's say we want to know which format the VCF is in by looking at the field called `fileformat`:
+
+```{r}
+meta(hdr)$fileformat
+```
+
+OK we need to remember this ... the version is important to know for future steps (more later).
+
+------------------------------------------------------------------------
+
+It is also important to know which reference genome build was used. We will be annotating the VCF file with Bioconductor packages. Build 37 is an older version but you may encounter this when accessing publicly available data. Build 37 or GRCh37 and hg19 are synonyms.
+
+```{r}
+meta(hdr)$reference
+```
+
+------------------------------------------------------------------------
+
+##### The information fields
+
+The **information** section of the header tells you about the annotations that are available for every sample in the VCF file. You can use the `info()` accessor function to look at these annotation types:
+
+```{r}
+info(hdr)
+```
+
+Again you can see more details by accessing individual fields with the `$` followed by the name:
+
+```{r}
+info(hdr)$Description
+```
+
+So `NS` stands for "Number of Samples With Data", `TD` stands for "Total Depth", `DB` stands for "dbSNP membership" build. We can get more specific information about each sample and variant once we read all the data in (we are now just looking at the header).
+
+------------------------------------------------------------------------
+
+##### The genotype fields
+
+The **genotype** information can be accessed using the `geno()` function, and again just like with the function above, we can inspect fields using the `$` and we can get more information about specific samples once we read the whole file.
+
+```{r}
+geno(hdr) 
+```
+
+------------------------------------------------------------------------
+
+##### Other fields and access methods
+
+There are many other accessor functions that you will learn over time. We can't cover them all here. For example, the **sample** name(s) can be accessed using the `samples()` function:
+
+```{r}
+samples(hdr)
+```
+
+In addition, you should be aware that **slots** can sometimes be used to access parts of Bioconductor objects using the `@` symbol. You may see this in some code. For example, you can use this method to access sample information:
+
+```{r}
+hdr@samples
+```
+
+------------------------------------------------------------------------
+
+#### C. Read the full VCF file
+
+Now we will finally read a whole VCF file using `readVcf()` into R so we can look at the individual variants. We will simply call this object `vcf`.
+
+```{r}
+?readVcf  
+vcf_file ## the name of the file (from above)
+
+vcf_full <- readVcf(file=vcf_file, genome="hg19")
+vcf_full
+```
+
+------------------------------------------------------------------------
+
+#### D. Inspect the VCF data
+
+Notice that there are 174,744 rows in the file. We will do some filtering in the next steps, but first we may want to summarize some aspects for this sample. For example, we can see from the first section of the output above that in addition to the information and metadata, we have additional data that we can now access. For example, the `rowRanges()` function can be used on the VCF file object. Let's try it and see what happens:
+
+```{r}
+rowRanges(vcf_full)
+```
+
+------------------------------------------------------------------------
+
+What are **GRanges**? These objects contain information about genomic locations and annotations related to the variants. Remember that a good way to start learning about data structures and functions in R is by pulling up help files.
+
+```{r}
+?GRanges
+```
+
+You will encounter a lot of **GRanges** objects with Bioconductor! So it's good to get used to working with these. They include information about chromosome, start position, end potision, reference allele (REF), and alternative alleles (ALT).
+
+------------------------------------------------------------------------
+
+##### Genotypes
+
+Let's say now we tant to tabulate the **genotypes.** We can use the `geno()` function on the full file just like we did using the header file:
+
+```{r}
+geno(vcf_full)
+```
+
+We can also tabulate the different genotypes using the `$` and GT field.
+
+```{r}
+table(geno(vcf_full)$GT)
+```
+
+VCF file specifications can be found [here](https://vcftools.github.io/specs.html). The coding of genotypes and other information is specific to the file format version. We saw above (using `meta(hdr)$fileformat`) that we have a 4.1 version VCF file. Here is a summary of what is what in the specifications documentation:
+
+The `|` split indicates that variants are phased (it is known which copy of the chromosome the variant is on), and those split by a `/` are unphased (could be from either copy of the chromosome)
+
+The `.` means that a call could not be made.
+
+A `0/1` variant is a heterozygous one where one allele is the same as the reference
+
+A `1/1` variant is a homozygous one where both alleles are different from the reference
+
+A `1/2` variant is a heterozygous one where both alleles are different from reference
+
+------------------------------------------------------------------------
+
+##### **Quality scores**
+
+Quality scores simplistically refer to the confidence level in the genotype calls. You should check to see what algorithm your quality scores are based on. Most of the time, these are based on [Phred scores](https://gatk.broadinstitute.org/hc/en-us/articles/360035531872-Phred-scaled-quality-scores), but there are other algorithms too. Make sure you understand where your quality scords are coming from and how to filter based on these scores.
+
+The range of quality scores depends on the scoring algorithm - sometimes it ranges from 0 to $\infty$. Higher scores correspond to higher confidence that the call is correct.
+
+First we want to get access to the GQ field to look at quality scores.
+
+```{r}
+gq_mat <- geno(vcf_full)$GQ
+```
+
+We need to use the `as.vector()` function to summarize the values.
+
+```{r}
+summary(as.vector(gq_mat))
+```
+
+It looks like there is a skewed distribution. Let's plot these quality scores on a histogram.
+
+```{r}
+hist(as.vector(gq_mat), breaks=100)
+```
+
+------------------------------------------------------------------------
+
+##### **Read depths**
+
+Read depth simplistically refers to the total number of sequence reads overlapping that variant. A depth value of 1 means that the variant was based on a single read. That makes it hard to tell if this is a true variant or a sequencing error. Higher DP values reflect better coverage and more confidence in the variant call.
+
+The same procedure used for quality scores can be used for read depths.
+
+```{r}
+dp_mat <- geno(vcf_full)$DP
+```
+
+We need to use the `as.vector()` function to summarize the data in this matrix (like above).
+
+```{r}
+summary(as.vector(dp_mat))
+```
+
+```{r}
+hist(as.vector(dp_mat), breaks=100)
+```
+
+Note that it is difficult to generalize about quality and read depth. It varies by sequencing platform and variant types represented in VCF files.

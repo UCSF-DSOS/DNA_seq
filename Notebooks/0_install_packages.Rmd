@@ -3,48 +3,48 @@ title: "DNA Variant Analysis with R Bioconductor"
 output: html_notebook
 ---
 
-<br/>
+------------------------------------------------------------------------
 
-#### In this workshop, our objectives are to:  
+#### In this workshop, our objectives are to:
 
-  1. Examine the header and metadata of a Variant Call Format (VCF) file  
-  2. Select variants in genes of interest  
-  3. Get transcripts and genotypes for selected variants  
-  4. Locate regions of genes where variants fall (exons, introns, etc.)  
-  5. Get the predicted impact of variants  
-  6. Export variants to a Browser Extensible Data (BED) file and view in UCSC browser 
-  7. Perform pathway analysis on variants of interest 
-<br/>
+1.  Examine the header and data of a Variant Call Format (VCF) file
+2.  Filter and select variants of interest
+3.  Annotate variants with transcript information
+4.  Locate regions of genes where variants fall (exons, introns, etc.)
+5.  Get the predicted impact of variants
+6.  Export variants to a Browser Extensible Data (BED) file and view in UCSC browser
+7.  Perform pathway analysis on variants of interest using data from [The Cancer Genome Atlas](https://www.cancer.gov/about-nci/organization/ccg/research/structural-genomics/tcga) data
 
-##### Load required packages
+------------------------------------------------------------------------
 
-Notes: 
+##### Install required packages
 
-* The code below only installs packages if not already installed (this is what the `setdiff` function checks for). Normally you would want to re-install/update them. Below are instructions for those who are re-installing/updating during the workshop.     
-* If asked "Update all/some/none?", select No [n] during class (other times select Yes [y]). Older versions of the packages that we will be using will probably work OK.  
-* If asked "Do you want to install from sources the package which needs compilation?", select No [n] during class (other times select Yes [y]). Note that source versions are typically a little newer than binary versions.  
-* Lazy loading errors can be ignored, as can warnings about the version of R packages were built under.  
-* If asked to restart R, I recommend that you do so.  
- 
+Notes:
 
-```{r message=FALSE}
+-   I recommend you start a fresh R/RStudio session before running the code below, and if asked to restart R during the process, I recommend that you do so.
+-   If asked "Update all/some/none?", select No [n] during class (other times select Yes [y]). Older versions of the packages that we will be using will probably work OK.
+-   If asked "Do you want to install from sources the package which needs compilation?", select No [n] during class (other times select Yes [y]). Note that source versions are typically a little newer than binary versions.
+-   Lazy loading errors can be ignored, as can warnings about the version of R packages were built under.
+-   We will not be re-installing the packages during class, so it is important that you make sure that you have these installed before class.
+
+```{r}
 ## install Bioconductor
-if (!requireNamespace("BiocManager"))
+if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
-# BiocManager::install(update = TRUE, ask = FALSE)  ## un-comment if you need to re-install or update 
+BiocManager::install(version = "3.15")  
 
 ## list Bioconductor packages
-bpkgs <- c("VariantAnnotation","org.Hs.eg.db","TxDb.Hsapiens.UCSC.hg19.knownGene",
-          "BSgenome.Hsapiens.UCSC.hg19","rtracklayer","GO.db","ReactomePA")  
+bpkgs <- c("VariantAnnotation","GenomicFeatures","org.Hs.eg.db","TxDb.Hsapiens.UCSC.hg19.knownGene","BSgenome.Hsapiens.UCSC.hg19","rtracklayer","GO.db","ReactomePA")  
 
 ## install Bioconductor packages
-# BiocManager::install(setdiff(bpkgs, rownames(installed.packages()))) 
+BiocManager::install(bpkgs, force = TRUE) 
 
 ## list CRAN packages
-rpkgs <- c("here","R.utils","rmarkdown","knitr","enrichplot","ggnewscale") ## knitr only needed if using R notebooks
+rpkgs <- c("here","cli","R.utils","rmarkdown","knitr","remotes","stringr") 
+## rmarkdown and knitr are only needed if you are using R notebooks
 
 ## install CRAN packages
-install.packages(setdiff(rpkgs, rownames(installed.packages())), quiet=TRUE)
+install.packages(rpkgs)
 
 ## list and load all packages
 pkgs <- c(bpkgs, rpkgs)
@@ -52,6 +52,32 @@ for(package in pkgs) {
   do.call("library", list(package))
 }
 
+remotes::install_github("GuangchuangYu/enrichplot")
+library(enrichplot)
 ```
 
-To find package citations, you can use the citation() function with package name as the argument, e.g. citation("ReactomePA").
+------------------------------------------------------------------------
+
+##### Load required packages
+
+Since we are not running the installation code above during class, we can start by running this block to load the packages with the `library()` function. You can either load one at a time or use the `for()` loop as in the code chunk below which just reduces the number of lines. First we will re-define the `pkgs` vector with the package names.
+
+```{r}
+pkgs <- c("VariantAnnotation","GenomicFeatures","org.Hs.eg.db","TxDb.Hsapiens.UCSC.hg19.knownGene","BSgenome.Hsapiens.UCSC.hg19","rtracklayer","GO.db","ReactomePA","here","cli","R.utils","rmarkdown","knitr","remotes","stringr","enrichplot") 
+
+for(package in pkgs) {
+  do.call("library", list(package))
+}
+
+
+```
+
+No errors means everything has been installed properly. Red text that does not start with Error: is expected - I have suppressed it here.
+
+------------------------------------------------------------------------
+
+To find package citations, you can use the citation() function with package name as the argument, e.g. `citation("ReactomePA")`.
+
+```{r}
+citation("ReactomePA")
+```

@@ -1,0 +1,231 @@
+---
+title: "DNA Variant Analysis with R Bioconductor"
+output: html_notebook
+---
+
+------------------------------------------------------------------------
+
+#### *Objective 7: Perform pathway and other functional analyses on variants of interest*
+
+------------------------------------------------------------------------
+
+#### A. Functional analysis methods overview
+
+There are many different ways to do functional analysis of genomic data. We cannot cover them all here. Below are some resources for you to look into for more training on this topic:
+
+-   The book [Biomedical Knowledge Mining](https://yulab-smu.top/biomedical-knowledge-mining-book/index.html). Here is a description of it:
+
+    "The book is meant as a guide for mining biological knowledge to elucidate or interpret molecular mechanisms using a suite of R packages, including [ChIPseeker](http://bioconductor.org/packages/ChIPseeker), [clusterProfiler](http://bioconductor.org/packages/clusterProfiler), [DOSE](http://bioconductor.org/packages/DOSE), [enrichplot](http://bioconductor.org/packages/enrichplot), [GOSemSim](http://bioconductor.org/packages/GOSemSim), [meshes](http://bioconductor.org/packages/meshes) and [ReactomePA](http://bioconductor.org/packages/ReactomePA). Hence, if you are starting to read this book, we assume you have a working knowledge of how to use R."
+
+-   For a recent overview of gene set analysis, see this paper "[Fifteen Years of Gene Set Analysis for High-Throughput Genomic Data: A Review of Statistical Approaches and Future Challenges](https://pubmed.ncbi.nlm.nih.gov/33286201/)" by Das, McClain, and Rai (2020).
+
+-   You may also want to check out the excellent workshops offered by the [Gladstone Institute](https://github.com/gladstone-institutes/Bioinformatics-Workshops/wiki) for special workshops on this topic.
+
+------------------------------------------------------------------------
+
+#### B. The Cancer Genome Atlas dataset
+
+##### Breast cancer mutation data
+
+So far we have just been working with a handful of variants from a single chromosome and sample. Since pathways involve genes from multiple chromosomes, we will use a small dataset containing the 100 most-frequently mutated genes in female breast cancer patients. This data is freely available through The Cancer Genome Atlas (TCGA), and was obtained using the [Genomic Data Commons Data Portal](https://portal.gdc.cancer.gov/).
+
+*Note: 100 genes is an arbitrary number. It is not based on any biological or clinical criteria - this is for demonstration purposes only. Whether you are doing pathway analysis with differentially expressed genes or mutated genes, you should think carefully about your input list before doing the analysis!*
+
+------------------------------------------------------------------------
+
+Download the file `tcga_brca_mut_top100.tsv` from the course website and save it to your Data folder. Read this in as an object called `brca_var`. The only thing you really need are the gene symbols, but it contains all default fields in case you are curiuos to see what else you can look at from TCGA.
+
+```{r}
+brca_var <- read.delim(file=paste0(proj_dir, "/Data/tcga_brca_mut_top100.tsv"), stringsAsFactors=FALSE)
+head(brca_var)
+```
+
+------------------------------------------------------------------------
+
+#### C. Reactome pathway analysis
+
+##### The ReactomePA vignette
+
+First, we will use the `ReactomePA` package to do a pathway analysis on some TCGA data. This package uses a hypergeometric model [(Yu and He)](https://pubmed.ncbi.nlm.nih.gov/26661513/) to determine whether your list of genes are significantly associated with any Reactome pathways. Make sure this package is loaded. You may also want to look through the vignettes for this package using the `browseVignettes` function.
+
+The package can do pathway analysis for 7 different organisms.
+
+```{r}
+browseVignettes("ReactomePA")
+```
+
+------------------------------------------------------------------------
+
+##### Map gene names using different naming systems
+
+Sound familiar? The `ReactomePA` package uses ENTREZIDs. So we need to translate the gene SYMBOLs used by TCGA. First let's create a vector of all the gene symbols and store these in an object `brca_symbols`.
+
+```{r}
+brca_symbols <- brca_var$Symbol
+brca_symbols
+```
+
+OK remember that `select()` function from the `AnnotationDbi` package? If not, pull up the help file for it again.
+
+```{r}
+?AnnotationDbi::select
+brca_ids <- select(org.Hs.eg.db, 
+    keys=brca_symbols, 
+    keytype="SYMBOL", 
+    columns="ENTREZID")
+head(brca_ids)
+```
+
+So this time, instead of specifying a couple of individual genes by name in the `keys` argument (like we did for TRP genes in an earlier objective), we input the full vector of gene symbols that we defined above to input a larger list of genes.
+
+------------------------------------------------------------------------
+
+##### Finding enriched pathways
+
+OK now we just need a character vector of ENTREZIDs as input to the `enrichPathway()` function. We are going to use a q-value cutoff of 0.05 to determine significance. This takes into account that we are doing tests on a lot of genes. Q-values are commonly used when you want to control the **false discovery rate (FDR)** in scenarios where you are doing many separate tests, which is common in omics data analysis.
+
+We will save the results of our pathway analysis in an object called `brca_pwy`. It might take a minute to run this.
+
+```{r}
+?enrichPathway
+brca_pwy <- enrichPathway(gene=brca_ids$ENTREZID, qvalueCutoff=0.05, readable=T) 
+brca_pwy
+```
+
+In the output above, we see the line "pvalues adjusted by 'BH' with cutoff \<0.05". How many pathways did we get with a q-value \< 0.05?
+
+```{r}
+dim(brca_pwy)
+```
+
+So we have identified 45 "significantly enriched" pathways. Meaning that the number of selected genes associated with a reactome pathway is larger than expected based on chance.
+
+There is a lot of other interesting information in the output above, for example:
+
+-   **ID** (the Reactome pathway ID). You can use this information to look an ID up on [reactome.org](https://reactome.org/) (e.g. see the main entry for [R-HSA-977068](https://reactome.org/content/detail/R-HSA-977068), and some other cool views are [here](https://reactome.org/content/detail/R-HSA-1643685) and [here](https://reactome.org/PathwayBrowser/#/R-HSA-977068)). Anyway, this pathway is called "Termination of O-glycan biosynthesis".
+
+-   **GeneRatio** (number of genes in the sample with mutations over the number in the pathway).
+
+-   **GeneID** (the actual genes in the sample that have the mutations).
+
+Have fun exploring all of this! By now hopefully you can figure out how to access the different elements of this `brca_pwy` object. if not then it's OK just keep practicing and ask me for help if you need it.
+
+------------------------------------------------------------------------
+
+##### Visualize pathway analysis results
+
+Let's do some visualizations. First we will do a bar plot showing the top 10 pathways. We will save these to files in order to be able to view them better (first un-comment the `png` and `dev.off()` lines if you want to save them in a Results directory for example.
+
+------------------------------------------------------------------------
+
+###### Bar plot of the top 10 pathways
+
+Let's just visualize the top 10 most significant pathways (again 10 is an arbitrary number!).
+
+```{r}
+# png(paste0(proj_dir, "/Results/barplot_brca.png"), width=960)
+barplot(brca_pwy, showCategory = 10)
+# dev.off()
+```
+
+This plot ranks the pathways on significance levels. The p.adjust value is a little different from the q-value but similar in that it adjusts for multiple comparisons. The x-axis is not labeled, but it shows the number of mutated genes in the sample.
+
+------------------------------------------------------------------------
+
+###### Dot plot of the top 10 pathways.
+
+This is just another way to visualize the same information. Again I am commenting out the commands that save the image.
+
+```{r message=FALSE}
+# png(paste0(proj_dir, "/Results/dotplot_brca.png"), width=960)
+dotplot(brca_pwy, showCategory = 10)
+# dev.off()
+```
+
+This plot ranks on GeneRatios, and is multi-dimensional as you can see (dot size represents number of genes with mutations in the sample, p.adjust represents the statistical significance levels.
+
+------------------------------------------------------------------------
+
+###### Enrichment map of the top 10 pathways
+
+This takes things to yet another level by showing how the sigificant pathways are related to each other.
+
+```{r}
+# png(paste0(proj_dir, "/Results/emap_brca.png"), width=960)
+brca_pwy_ptobj <- pairwise_termsim(brca_pwy)
+emapplot(brca_pwy_ptobj, showCategory = 10)
+# dev.off()
+```
+
+------------------------------------------------------------------------
+
+#### D. Other functional analysis examples
+
+This section is for demonstration purposes only. Up at the top of this notebook are some other references. This is just to show you what else you can do with R packages. It's exciting! Here we will focus on the `maftools` package functions, especially the visualizations which are very cool.
+
+To run the code below, you'll need the file `tcga_brca.maf` from the course website and you will also need to install and load `maftools` from Bioconductor.
+
+I'll leave it to you as an exercise to interpret the lines of code below and let me know if you have questions.
+
+------------------------------------------------------------------------
+
+##### Read the TCGA breast cancer MAF file
+
+```{r}
+## install maftools from Bioconductor (commented out here)
+# BiocManager::install("maftools") ## from Bioconductor 
+
+## load the maftools package
+library(maftools)
+
+## read the MAF file
+brca_maf <- read.maf("Data/tcga_brca.maf")
+brca_maf
+```
+
+------------------------------------------------------------------------
+
+##### Cancer-specific visualizations
+
+###### Lollipop plot for BRCA1 mutations
+
+This is actually a special type of lollipop plot that come from the `maftools` packages.
+
+```{r}
+lollipopPlot(maf = brca_maf, 
+             gene = 'BRCA1', 
+             AACol = 'Protein_Change', 
+             showMutationRate = TRUE,
+             labelPos = "all")
+```
+
+------------------------------------------------------------------------
+
+If you are familiar with Oncoplots, we can also use the `oncoplot()` function from `maftools`. Let's say we want to show the top 10 genes.
+
+###### Oncoplot for top 10 mutated genes
+
+```{r}
+oncoplot(maf = brca_maf, top = 10)
+```
+
+------------------------------------------------------------------------
+
+###### Ti/Tv ratio plots
+
+Ti/Tv ratios are sometimes important to look at too.
+
+```{r}
+brca_maf_titv = titv(maf = brca_maf, plot = FALSE, useSyn = TRUE)
+plotTiTv(res = brca_maf_titv)
+```
+
+------------------------------------------------------------------------
+
+##### Reminder about package citations
+
+Did you like the functionality of the `maftools` package? I would like to remind you that you should be giving credit to the authors of any package that you use. I introduced the `citations()` function in the first notebook for the `ReactomePA` package. Here is the citation for `maftools`.
+
+```{r}
+citation("maftools")
+```

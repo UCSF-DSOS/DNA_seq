@@ -3,21 +3,40 @@ title: "DNA Variant Analysis with R Bioconductor"
 output: html_notebook
 ---
 
-<br/>
+------------------------------------------------------------------------
 
 #### *Objective 5. Get the predicted impact of variants*
 
-<br/>
-Now we need a **BSgenome** database to get even more information about the sequence changes in our sample compared to the reference genome. For example we can use this to determine if our sample variants will change amino acids. This in turn will allow us to predict whether these changes will impact the protein function. First let's look at this.   
+------------------------------------------------------------------------
+
+#### A. Retrieve information from the reference genome sequence
+
+Now we need a **BSgenome** database to get even more information about the sequence changes in our sample compared to the reference genome. For example, we can use this to determine if our sample variants will change amino acids. This in turn will allow us to predict whether these changes will impact the protein function. First let's look at the summary information about `BSgenome.Hsapiens.UCSC.hg19`.
 
 ```{r}
 ?BSgenome.Hsapiens.UCSC.hg19
-
 BSgenome.Hsapiens.UCSC.hg19
 ```
 
-<br/>
-Just like we did before with the TxDb object, we need to remove the "chr" from the chromosome names since our sample (VCF file) does not have this.  
+------------------------------------------------------------------------
+
+Just like we did before with the TxDb object, we need to remove the "chr" from the chromosome names since our sample (VCF file) does not have this.
+
+```{r}
+seqlevels(vcf_sub)
+```
+
+Remember that although this has all chromosomes listed, the data only contains variants from chromosome 17. In fact in Objective 3, we re-read the VCF file with the filtered/selected TRP genes.
+
+```{r}
+rowRanges(vcf_sub)
+```
+
+------------------------------------------------------------------------
+
+#### B. Align naming of chromosomes in VCF files and gene sequence
+
+We are now going to revisit the `renameSeqlevels()` function that we used in Objective 3 to get rid of the "chr" part of the chromosome names. Just like with the `TxDb.Hsapiens.UCSC.hg19.knownGene` database will also assign `BSgenome.Hsapiens.UCSC.hg19` to a shorter name first (we will use `hsa` for this one).
 
 ```{r}
 hsa <- BSgenome.Hsapiens.UCSC.hg19
@@ -25,39 +44,46 @@ hsa <- renameSeqlevels(hsa, gsub("chr", "", seqlevels(hsa)))
 hsa
 ```
 
+------------------------------------------------------------------------
 
+#### C. Use sequence data to translate variants to amino acid sequences
 
-<br/>
-Now we are going to translate the variants to amino acids to find out if they are synonymous or non-synonymous.
+##### Select variants that change amino acids
+
+Now we are going to translate the variants to amino acids to find out if they are synonymous or non-synonymous. We use the `predictCoding()` function and assign this to a new object called `aa_vars` . This will only contain variants that change amino acid sequence (as opposed to `all_vars` which has all of the variants in the TRP genes.
+
 ```{r warning=FALSE}
 ?predictCoding
 
 aa_vars <- predictCoding(query=vcf_sub, subject=txdb, seqSource=hsa)
 ```
-<br/>
 
-Let's take a look at the small subset of variants that change amino acids:    
+OK let's take a look at the variants that change amino acids:
 
 ```{r}
 aa_vars
 ```
 
-<br/>
+------------------------------------------------------------------------
 
-Remember from the previous section that we can turn a GRanges object into a data frame with `mcols()`.
+##### Create a data frame of all variants
+
+Remember from Objective 4 that we can turn a GRanges object into a data frame with `mcols()`.This makes it easy for us to manipulate with "regular" R functions. We created `all_df` before from `all_vars`, now we will create `aa_df` from `aa_vars`.
+
 ```{r}
 aa_df <- mcols(aa_vars) 
 dim(aa_df)
 head(aa_df)
 ```
 
-<br/>
+------------------------------------------------------------------------
 
-Now we can use `table()` to see how many are translated and (non-)synonymous. We should only see the three genes we originally selected now (TRP genes).  
+##### Tabulate the amino acid changes and gene names
+
+Now we can use `table()` to see how many are translated and (non-)synonymous. We should only see the three genes we originally selected now (TRP genes).
+
 ```{r}
 table("Impact:"=aa_df$CONSEQUENCE, "ENTREZID:"=aa_df$GENEID)
 ```
 
-```{r}
-trp_ids
-```
+Great we are back to just the 3 TRP genes. Remember that these were the only ones that had variants in coding regions. The other genes (e.g. SHPK) that variants overlapped are not in this list.

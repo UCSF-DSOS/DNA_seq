@@ -3,68 +3,71 @@ title: "DNA Variant Analysis with R Bioconductor"
 output: html_notebook
 ---
 
-<br/>
+------------------------------------------------------------------------
 
 #### *Objective 4. Locate the gene regions of all variants*
 
+------------------------------------------------------------------------
 
-<br/>
-Now we can find the specific gene locations for all variants using the `locateVariants()` function.  
+#### A. Identify gene location information (exon, intron, etc.)
+
+Now we can find specific gene locations for all variants in our `vcf_sub` object (a subset of the original raw VCF file that conains the columns and using the `locateVariants()` function .
+
 ```{r}
 ?locateVariants
 
 all_vars <- locateVariants(query=vcf_sub, subject=txdb, region=AllVariants())
 ```
-Note: the first message explains itself, and you may want to look into this. We won't worry about it since we have a lot of ranges left (see below). The 1:many message just means that there are >1 transcripts per gene in the VCF file. 
+
+The Warning message explains itself, and you may want to look into using the suggested functions if it concerns you. We won't worry about it since we have a lot of ranges left (see below), and we also didn't do any quality or read depth filtering on this VCF file before extracting the variants that match our genes, so perhaps this would remove some of those issues.
+
+The many:1 message just means that there are \>1 transcripts per gene in the VCF file. This is as expected! Most human genes have more than one transcript. But if you are worried about this, look into it before proceeding.
+
+OK let's take a look at the variants that we just extracted and saved in the `all_vars` object.
 
 ```{r}
 all_vars
 ```
 
+------------------------------------------------------------------------
 
-<br/>
-
-##### Create a data frame of all variants
+#### B. Create a data frame of all variants
 
 Let's convert the GRanges object we just created into a data frame with the `mcols()` function, which can make it easier to work with.
+
 ```{r}
 all_df <- mcols(all_vars)
 dim(all_df)
 head(all_df)
 ```
 
-<br/>
+------------------------------------------------------------------------
 
-Now you can use the `table()` function to find out how many variants we have by gene region for each ENTREZID.
+#### C. Tabulate the gene locations and gene names
+
+Now you can use the `table()` function to find out how many variants we have by gene region for each ENTREZID, since our `all_df` object is just a regular R data frame. Notice that the ENTREZIDs are stored in the column GENEID (annoyingly, not like the reference files where the column is more intuitively called ENTREZID).
+
 ```{r}
 table("gene loc:"=all_df$LOCATION, "ENTREZID:"=all_df$GENEID)
 ```
 
-<br/>
+------------------------------------------------------------------------
 
-**Wait!** Why do we have so many ENTREZIDs? Shouldn't we just have three like we had with `trp_ids` (what we selected for above)?  
+**Wait!** Why do we have so many ENTREZIDs? Shouldn't we just have three like we had with `trp_ids` (what we selected for above)?
+
 ```{r}
 trp_ids
 ```
 
-<br/>
+**The answer:** Some variants may occur in overlapping genes, or in regulatory regions associated with the gene of interest.
 
-**The answer:** Some variants may occur in overlapping genes, or in regulatory regions associated with the gene of interest. 
+Notice the row labeled "coding". Which ENTREZIDs do these variants fall into? Note that if the data does not look aligned within your RStudio window, sometimes it can help to pop it out to a new window using the little icon in the top right of the window with the tooltip "Show in New Window".
 
-<br/>
+------------------------------------------------------------------------
 
-Let's select these three new ENTREZIDs and get their SYMBOLs... remember how we got `trp_ids`? Here's a reminder of how we did it before:  
+#### D. Map gene names using different naming systems
 
-```{r}
-trp_ids <- select(org.Hs.eg.db, 
-    keys=c("TRPV1", "TRPV2", "TRPV3"), 
-    keytype="SYMBOL", 
-    columns="ENTREZID")
-```
-
-<br/>
-
-**Challenge:** create an object called `other_ids` where you get the SYMBOLs that correspond to the ENTREZIDs 125144, 23729, and 84690.
+OK so we have some ENTREZIDs above that don't match up with the TRP genes of interest. What if you wanted to find out what some of the corresponding gene symbols are? Do you remember how we used that `select()` function from `AnnotationDbi` to map from TRP (symbols) to ENTREZIDs in Objective 2? Let's try to use it to map in the opposite direction to get gene symbols for some of these ENTREZIDs: 125144, 23729, and 84690. We will just call these `other_ids` for now.
 
 ```{r}
 other_ids <- select(org.Hs.eg.db, 
@@ -74,4 +77,6 @@ other_ids <- select(org.Hs.eg.db,
 other_ids
 ```
 
+The 1:1 message indicates that we have one ENTREZID per SYMBOL. This is what we expect since we are working on the gene level.
 
+The variants in SHPK (ENTREZID 23729) are in the shpk.bed file on the course website. There are only 2 variants that overlap this gene. We will be looking at these in the UCSC Browser later so we can see how they relate to the TRP genes.

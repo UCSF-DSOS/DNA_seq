@@ -1,0 +1,90 @@
+---
+title: "DNA Variant Analysis with R Bioconductor"
+output: html_notebook
+---
+
+------------------------------------------------------------------------
+
+### *Objective 2. Filter and select variants of interest*
+
+------------------------------------------------------------------------
+
+#### A. Filtering on quality and read depth
+
+You can start by filtering variants based on quality and read depths using recommendations that are specific to your sequencing platform and variant calling algorithm. You may also want to use separate filters for each variant type. This is a complicated topic. If you want to filter on both quality and read depth, you can take advantage of the various ways to access information in the VCF file.
+
+In a hypothetical scenario just to demonstrate a method, let's say you decided that you want to filter all variants on a quality score of over 100 and a read depth of over 100. You could do it like this:
+
+```{r}
+vcf_filt <- vcf_full[which(vcf_full@fixed$QUAL > 100 & vcf_full@info$DP > 100), ]
+dim(vcf_full) ## check number of variants in the full VCF file
+dim(vcf_filt) ## check number of variants in the filtered VCF file
+```
+
+------------------------------------------------------------------------
+
+##### Plot filtered data
+
+I won't go too much further on this since it is so context-dependent, but you could re-plot the filtered data in the same way that we did in the previous section:
+
+```{r}
+gq_mat_filt <- geno(vcf_filt)$GQ
+hist(as.vector(gq_mat_filt), breaks=100)
+```
+
+```{r}
+dp_mat_filt <- geno(vcf_filt)$DP
+hist(as.vector(dp_mat_filt), breaks=100)
+```
+
+Again, I am not advocating for any specific cutoffs here. Just showing some methods for achieving the filtration steps if you want to start with quality and read depth filters.
+
+The `vcf_filt` object was for demonstration purposes only, so let's remove it.
+
+```{r}
+rm(vcf_filt)
+```
+
+------------------------------------------------------------------------
+
+#### B. Filtering on a list of genes
+
+Let's say that you are interested in looking at variants that occur in a list of genes that you provide. For the sake of this tutorial, let's look at a small list of genes. For example, let's say you want to focus on TRP (transient receptor potential) genes.
+
+TRP genes are involved in temperature sensation and other processes (e.g., TRPV1 encodes a receptor for capsiacin, an active component of chili peppers🌶️). And they are all on human chromosome 17, which is what we have in our sample VCF file.
+
+------------------------------------------------------------------------
+
+##### Identify genes of interest in reference database
+
+First of all, we need the built-in `org.Hs.eg.db` database from the `AnnotationDbi` package. `org.Hs.eg.db` contains human gene annotations as we can see by looking at the column names of this data. Other databases exist for other species.
+
+```{r message=FALSE}
+?org.Hs.eg.db
+org.Hs.eg.db
+```
+
+Notice that we have a field in the output above that indicates that gene names are Entrez Gene IDs. This is how `org.Hs.eg.db` identifies genes. If we use the `columns()` function on it, we can look for Gene Symbols (which is what TRPV1, etc. are named as).
+
+```{r}
+columns(org.Hs.eg.db)
+```
+
+Well we see a column called SYMBOL in addition to ENTREZID. We can use SYMBOLs to extract the TRP genes by name. But we will also need to get the transcripts from these genes in order to identify where each variant is located within them. We will do this in the next Objective, but first let's see how we can map these various gene names to each other. You'll be doing this again so it's good to get the practice with this.
+
+------------------------------------------------------------------------
+
+##### Mapping gene names using different naming systems
+
+Let's use the `select()` function to select TRP genes from the reference database. Note that there are multiple packages that support a function with the same name. We want to look at the one from the `AnnotationDbi` package, so we will call up the help file from that one with `?AnnotationDbi::select`.
+
+```{r}
+?AnnotationDbi::select
+trp_ids <- select(x=org.Hs.eg.db, 
+    keys=c("TRPV1", "TRPV2", "TRPV3"), 
+    keytype="SYMBOL", 
+    columns="ENTREZID")
+trp_ids
+```
+
+What we are doing is translating from ENTREZ IDs to gene SYMBOL IDs. Why? Notice that `org.Hs.eg.db` uses Entrez names in the output above. We want to be able to find the Entrez gene names that correspond to the gene symbols for our TRP genes.
